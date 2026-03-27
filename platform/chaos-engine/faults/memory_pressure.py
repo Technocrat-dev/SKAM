@@ -23,6 +23,7 @@ class MemoryPressureFault:
         )
 
         container = deploy.spec.template.spec.containers[0]
+        container_name = container.name
         original_limits = {}
         if container.resources and container.resources.limits:
             original_limits = dict(container.resources.limits)
@@ -38,7 +39,7 @@ class MemoryPressureFault:
                     "spec": {
                         "containers": [
                             {
-                                "name": deploy_name,
+                                "name": container_name,
                                 "resources": {
                                     "limits": {"memory": f"{limit_mi}Mi"},
                                     "requests": {"memory": f"{limit_mi}Mi"},
@@ -60,6 +61,7 @@ class MemoryPressureFault:
 
         return {
             "deployment": deploy_name,
+            "container_name": container_name,
             "original_limits": original_limits,
             "original_requests": original_requests,
             "injected_limit_mi": limit_mi,
@@ -69,6 +71,7 @@ class MemoryPressureFault:
         """Restore original memory limits."""
         state = experiment.rollback_state
         deploy_name = state["deployment"]
+        container_name = state.get("container_name", deploy_name)
         original_limits = state.get("original_limits", {"memory": "128Mi", "cpu": "250m"})
         original_requests = state.get("original_requests", {"memory": "64Mi", "cpu": "100m"})
 
@@ -78,7 +81,7 @@ class MemoryPressureFault:
                     "spec": {
                         "containers": [
                             {
-                                "name": deploy_name,
+                                "name": container_name,
                                 "resources": {
                                     "limits": original_limits,
                                     "requests": original_requests,

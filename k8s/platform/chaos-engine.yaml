@@ -28,8 +28,8 @@ spec:
             - containerPort: 8000
               name: http
           env:
-            - name: KUBERNETES_SERVICE_HOST
-              value: ""  # Uses in-cluster config
+            - name: LOG_LEVEL
+              value: "INFO"
           resources:
             requests:
               memory: "128Mi"

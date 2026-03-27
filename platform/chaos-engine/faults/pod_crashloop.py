@@ -23,14 +23,16 @@ class PodCrashLoopFault:
             name=deploy_name,
             namespace=target.namespace,
         )
-        original_image = deploy.spec.template.spec.containers[0].image
+        container = deploy.spec.template.spec.containers[0]
+        original_image = container.image
+        container_name = container.name  # Use actual container name, don't assume
 
         # Patch to invalid image
         patch = {
             "spec": {
                 "template": {
                     "spec": {
-                        "containers": [{"name": deploy_name, "image": invalid_image}]
+                        "containers": [{"name": container_name, "image": invalid_image}]
                     }
                 }
             }
@@ -45,6 +47,7 @@ class PodCrashLoopFault:
 
         return {
             "deployment": deploy_name,
+            "container_name": container_name,
             "original_image": original_image,
             "invalid_image": invalid_image,
         }
@@ -53,13 +56,14 @@ class PodCrashLoopFault:
         """Restore the original container image."""
         state = experiment.rollback_state
         deploy_name = state["deployment"]
+        container_name = state.get("container_name", deploy_name)
         original_image = state["original_image"]
 
         patch = {
             "spec": {
                 "template": {
                     "spec": {
-                        "containers": [{"name": deploy_name, "image": original_image}]
+                        "containers": [{"name": container_name, "image": original_image}]
                     }
                 }
             }
