@@ -1,6 +1,6 @@
 # ML Pipeline Validation Benchmark
 
-Generated: 2026-03-28 02:01:54
+Generated: 2026-03-28 02:27:01
 
 ## Methodology
 
@@ -24,12 +24,12 @@ anomaly window at rows 21-25 on api-gateway and product-service).
 | Precision | 0.0420 | 0.2211 | **B** |
 | Recall | 0.2857 | 0.2857 | Tie |
 | F1 Score | 0.0733 | 0.2489 | **B** |
-| Accuracy | 0.0420 | 0.9160 | **B** |
-| AUC-ROC | 0.5640 | 0.6369 | **B** |
-| Avg Precision (AUC-PR) | 0.0744 | 0.2481 | **B** |
-| Score Separation | 0.0000 | 0.1614 | **B** |
-| Mean Normal Score | 0.9000 | 0.3392 | **B** |
-| Mean Anomaly Score | 0.2571 | 0.2571 | Tie |
+| Accuracy | 0.0420 | 0.9202 | **B** |
+| AUC-ROC | 0.5640 | 0.6389 | **B** |
+| Avg Precision (AUC-PR) | 0.0744 | 0.2648 | **B** |
+| Score Separation | 0.0000 | 0.2180 | **B** |
+| Mean Normal Score | 1.0000 | 0.2515 | **B** |
+| Mean Anomaly Score | 0.2857 | 0.2857 | Tie |
 
 **Overall Winner: Approach B (Real-Data-Derived Synthetic)**
 (Approach A wins 0/7 metrics, Approach B wins 7/7 metrics)
@@ -40,8 +40,8 @@ anomaly window at rows 21-25 on api-gateway and product-service).
 
 | Threshold | A: Precision | A: Recall | A: F1 | B: Precision | B: Recall | B: F1 |
 |-----------|-------------|----------|-------|-------------|----------|-------|
-| t=0.5 | 0.0420 | 0.2857 | 0.0733 | 0.1587 | 0.2857 | 0.2041 |
-| t=0.6 | 0.0420 | 0.2857 | 0.0733 | 0.2041 | 0.2857 | 0.2381 |
+| t=0.5 | 0.0420 | 0.2857 | 0.0733 | 0.1508 | 0.2857 | 0.1973 |
+| t=0.6 | 0.0420 | 0.2857 | 0.0733 | 0.1687 | 0.2857 | 0.2119 |
 | t=0.7 | 0.0420 | 0.2857 | 0.0733 | 0.2211 | 0.2857 | 0.2489 |
 | t=0.8 | 0.0420 | 0.2857 | 0.0733 | 0.2211 | 0.2857 | 0.2489 |
 
@@ -57,9 +57,9 @@ Test data: 34 samples (5 anomalies)
 |--------|-----------|-----------|
 | AUC-ROC | 0.7241 | 0.9862 |
 | Avg Precision | 0.2604 | 0.9267 |
-| F1 (t=0.7) | 0.2564 | 0.9091 |
-| Score Sep. | 0.0000 | 0.5678 |
-| Train time | 100.3ms | 88.2ms |
+| F1 (t=0.7) | 0.2564 | 0.8333 |
+| Score Sep. | 0.0000 | 0.7507 |
+| Train time | 503.5ms | 758.1ms |
 
 ### user-service
 
@@ -71,7 +71,7 @@ Test data: 34 samples (0 anomalies)
 | Avg Precision | 0.0000 | 0.0000 |
 | F1 (t=0.7) | 0.0000 | 0.0000 |
 | Score Sep. | 0.0000 | 0.0000 |
-| Train time | 113.1ms | 97.9ms |
+| Train time | 485.9ms | 789.9ms |
 
 ### product-service
 
@@ -79,11 +79,11 @@ Test data: 34 samples (5 anomalies)
 
 | Metric | Approach A | Approach B |
 |--------|-----------|-----------|
-| AUC-ROC | 0.7241 | 0.9724 |
-| Avg Precision | 0.2604 | 0.8100 |
-| F1 (t=0.7) | 0.2564 | 0.8333 |
-| Score Sep. | 0.0000 | 0.5622 |
-| Train time | 99.1ms | 85.2ms |
+| AUC-ROC | 0.7241 | 0.9862 |
+| Avg Precision | 0.2604 | 0.9267 |
+| F1 (t=0.7) | 0.2564 | 0.9091 |
+| Score Sep. | 0.0000 | 0.7755 |
+| Train time | 515.2ms | 890.3ms |
 
 ### order-service
 
@@ -95,7 +95,7 @@ Test data: 34 samples (0 anomalies)
 | Avg Precision | 0.0000 | 0.0000 |
 | F1 (t=0.7) | 0.0000 | 0.0000 |
 | Score Sep. | 0.0000 | 0.0000 |
-| Train time | 99.4ms | 104.7ms |
+| Train time | 518.6ms | 825.6ms |
 
 ### cart-service
 
@@ -107,7 +107,7 @@ Test data: 34 samples (0 anomalies)
 | Avg Precision | 0.0000 | 0.0000 |
 | F1 (t=0.7) | 0.0000 | 0.0000 |
 | Score Sep. | 0.0000 | 0.0000 |
-| Train time | 93.7ms | 99.5ms |
+| Train time | 513.4ms | 911.0ms |
 
 ### payment-service
 
@@ -119,7 +119,7 @@ Test data: 34 samples (0 anomalies)
 | Avg Precision | 0.0000 | 0.0000 |
 | F1 (t=0.7) | 0.0000 | 0.0000 |
 | Score Sep. | 0.0000 | 0.0000 |
-| Train time | 84.8ms | 85.2ms |
+| Train time | 480.7ms | 775.3ms |
 
 ### notification-service
 
@@ -131,7 +131,7 @@ Test data: 34 samples (0 anomalies)
 | Avg Precision | 0.0000 | 0.0000 |
 | F1 (t=0.7) | 0.0000 | 0.0000 |
 | Score Sep. | 0.0000 | 0.0000 |
-| Train time | 94.2ms | 84.7ms |
+| Train time | 529.4ms | 738.9ms |
 
 ---
 
