@@ -84,14 +84,44 @@ ensemble = EnsembleScorer(weights={"isoforest": 0.4, "lstm": 0.6})
 # Per-service model registries
 service_models: dict[str, dict] = {}
 
+# Path to pre-generated training data
+TRAINING_DATA_DIR = os.path.join(os.path.dirname(__file__), "training_data")
+
 def get_models(service: str) -> dict:
-    """Get or create per-service model instances."""
+    """Get or create per-service model instances.
+    
+    If pre-generated training data exists (from generate_training_data.py),
+    the models are trained immediately on real-data-derived synthetic features.
+    Otherwise, falls back to Prometheus warmup.
+    """
     if service not in service_models:
+        iso = IsolationForestDetector()
+        lstm = LSTMAutoencoder()
+        
+        # Try to load pre-generated training data
+        npz_path = os.path.join(TRAINING_DATA_DIR, f"{service}.npz")
+        pretrained = False
+        if os.path.exists(npz_path):
+            try:
+                data = np.load(npz_path)
+                features = data["features"]
+                # Train on normal data only (labels == 0) for anomaly detection
+                labels = data["labels"]
+                normal_features = features[labels == 0]
+                
+                if len(normal_features) >= 20:
+                    iso.fit(normal_features)
+                    lstm.fit(normal_features)
+                    pretrained = True
+                    logger.info(f"Pre-trained models for {service} on {len(normal_features)} real-data-derived samples from {npz_path}")
+            except Exception as e:
+                logger.warning(f"Failed to load training data for {service}: {e}")
+        
         service_models[service] = {
-            "isoforest": IsolationForestDetector(),
-            "lstm": LSTMAutoencoder(),
+            "isoforest": iso,
+            "lstm": lstm,
             "warmup_data": [],
-            "warmup_rounds": 0,
+            "warmup_rounds": 6 if pretrained else 0,  # Skip warmup if pre-trained
         }
     return service_models[service]
 
