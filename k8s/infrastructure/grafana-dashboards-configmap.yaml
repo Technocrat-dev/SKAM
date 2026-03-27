@@ -1,0 +1,15 @@
+# Grafana Dashboard ConfigMap
+# This ConfigMap is loaded by the kube-prometheus-stack Grafana sidecar
+# to provision pre-built SKAM dashboards
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  service-health.json: |
+    {{ INSERT service-health.json content here during deploy }}
+  chaos-anomaly.json: |
+    {{ INSERT chaos-anomaly.json content here during deploy }}

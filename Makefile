@@ -26,6 +26,8 @@ infra-deploy:
 	helm upgrade --install loki grafana/loki-stack \
 		-n $(MONITORING_NS) --set promtail.enabled=true \
 		-f k8s/infrastructure/loki-values.yaml --wait
+	kubectl apply -f k8s/infrastructure/prometheus-rules.yaml
+	kubectl apply -f k8s/infrastructure/grafana-dashboards-configmap.yaml
 	kubectl apply -f k8s/rbac/
 
 # ─── Protobuf ─────────────────────────────────────────────

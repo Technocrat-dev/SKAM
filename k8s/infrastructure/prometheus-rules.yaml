@@ -1,0 +1,112 @@
+# Prometheus alerting rules for SKAM service anomalies
+# These fire before the ML detector catches them — used as a safety net
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: skam-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  groups:
+    - name: skam.service.health
+      interval: 15s
+      rules:
+        # Service down
+        - alert: ServiceDown
+          expr: up{job="skam-services"} == 0
+          for: 30s
+          labels:
+            severity: critical
+          annotations:
+            summary: "Service {{ $labels.app }} is down"
+            description: "{{ $labels.app }} has been unreachable for 30s"
+
+        # High error rate (>10% of requests are errors)
+        - alert: HighErrorRate
+          expr: |
+            sum(rate(http_errors_total[2m])) by (app)
+            / sum(rate(http_requests_total[2m])) by (app)
+            > 0.10
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High error rate on {{ $labels.app }}"
+            description: "Error rate is {{ $value | humanizePercentage }}"
+
+        # High latency (p99 > 2s)
+        - alert: HighLatency
+          expr: |
+            histogram_quantile(0.99,
+              sum(rate(http_request_duration_seconds_bucket[2m])) by (le, app)
+            ) > 2.0
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High p99 latency on {{ $labels.app }}"
+            description: "p99 latency is {{ $value }}s"
+
+        # Pod restart loop
+        - alert: PodRestartLoop
+          expr: |
+            increase(kube_pod_container_status_restarts_total{namespace="default"}[5m]) > 3
+          for: 0s
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pod {{ $labels.pod }} is in restart loop"
+            description: "{{ $value }} restarts in 5 minutes"
+
+        # High CPU usage (>90%)
+        - alert: HighCpuUsage
+          expr: |
+            sum(rate(container_cpu_usage_seconds_total{namespace="default", container!=""}[2m])) by (container)
+            / sum(kube_pod_container_resource_limits{namespace="default", resource="cpu"}) by (container)
+            > 0.9
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High CPU on {{ $labels.container }}"
+            description: "CPU usage is {{ $value | humanizePercentage }}"
+
+        # High memory usage (>85%)
+        - alert: HighMemoryUsage
+          expr: |
+            sum(container_memory_usage_bytes{namespace="default", container!=""}) by (container)
+            / sum(kube_pod_container_resource_limits{namespace="default", resource="memory"}) by (container)
+            > 0.85
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High memory on {{ $labels.container }}"
+            description: "Memory usage is {{ $value | humanizePercentage }}"
+
+    - name: skam.anomaly.detection
+      interval: 15s
+      rules:
+        # ML anomaly score too high
+        - alert: AnomalyDetected
+          expr: anomaly_score{detector="ensemble"} > 0.7
+          for: 30s
+          labels:
+            severity: critical
+          annotations:
+            summary: "Anomaly detected on {{ $labels.service }}"
+            description: "Ensemble anomaly score is {{ $value }}"
+
+        # Payment failure rate spike
+        - alert: PaymentFailureSpike
+          expr: |
+            rate(payment_failures_total[2m])
+            / rate(payment_processed_total[2m])
+            > 0.1
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Payment failure rate spike"
+            description: "Failure rate is {{ $value | humanizePercentage }}"

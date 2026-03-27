@@ -1,0 +1,294 @@
+{
+    "annotations": {
+        "list": [
+            {
+                "datasource": "-- Grafana --",
+                "enable": true,
+                "hide": true,
+                "iconColor": "rgba(255, 96, 96, 1)",
+                "name": "Chaos Events",
+                "type": "dashboard"
+            }
+        ]
+    },
+    "description": "SKAM Platform - Anomaly Detection & Chaos Engineering",
+    "editable": true,
+    "gnetId": null,
+    "graphTooltip": 2,
+    "id": null,
+    "links": [],
+    "panels": [
+        {
+            "title": "🔴 Anomaly Scores (ML Ensemble)",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 10,
+                "w": 24,
+                "x": 0,
+                "y": 0
+            },
+            "targets": [
+                {
+                    "expr": "anomaly_score{detector=\"ensemble\"}",
+                    "legendFormat": "{{service}} (ensemble)"
+                },
+                {
+                    "expr": "anomaly_score{detector=\"isoforest\"}",
+                    "legendFormat": "{{service}} (isoforest)"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "percentunit",
+                    "min": 0,
+                    "max": 1,
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 0.5
+                            },
+                            {
+                                "color": "red",
+                                "value": 0.7
+                            }
+                        ]
+                    },
+                    "custom": {
+                        "fillOpacity": 10,
+                        "lineWidth": 2,
+                        "thresholdsStyle": {
+                            "mode": "line+area"
+                        }
+                    }
+                }
+            },
+            "options": {
+                "tooltip": {
+                    "mode": "multi"
+                }
+            }
+        },
+        {
+            "title": "Chaos Experiments Active",
+            "type": "stat",
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 0,
+                "y": 10
+            },
+            "targets": [
+                {
+                    "expr": "chaos_experiments_active",
+                    "legendFormat": "active"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "orange",
+                                "value": 1
+                            },
+                            {
+                                "color": "red",
+                                "value": 3
+                            }
+                        ]
+                    }
+                }
+            },
+            "options": {
+                "colorMode": "background"
+            }
+        },
+        {
+            "title": "Recovery Actions Triggered",
+            "type": "stat",
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 6,
+                "y": 10
+            },
+            "targets": [
+                {
+                    "expr": "sum(increase(recovery_actions_total[1h]))",
+                    "legendFormat": "last hour"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 3
+                            },
+                            {
+                                "color": "red",
+                                "value": 10
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "title": "Mean Time to Detect (MTTD)",
+            "type": "stat",
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 12,
+                "y": 10
+            },
+            "targets": [
+                {
+                    "expr": "avg(detection_latency_seconds)",
+                    "legendFormat": "avg MTTD"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s"
+                }
+            }
+        },
+        {
+            "title": "Mean Time to Recover (MTTR)",
+            "type": "stat",
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 18,
+                "y": 10
+            },
+            "targets": [
+                {
+                    "expr": "avg(recovery_duration_seconds)",
+                    "legendFormat": "avg MTTR"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s"
+                }
+            }
+        },
+        {
+            "title": "Error Rate Spike Detection",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 16
+            },
+            "targets": [
+                {
+                    "expr": "sum(rate(http_errors_total[1m])) by (route) / sum(rate(http_requests_total[1m])) by (route)",
+                    "legendFormat": "{{route}} error %"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "percentunit",
+                    "custom": {
+                        "fillOpacity": 20
+                    }
+                }
+            }
+        },
+        {
+            "title": "Latency Anomaly Detection",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 16
+            },
+            "targets": [
+                {
+                    "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[1m])) by (le, route))",
+                    "legendFormat": "p99 {{route}}"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s",
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "red",
+                                "value": 2
+                            }
+                        ]
+                    },
+                    "custom": {
+                        "thresholdsStyle": {
+                            "mode": "line"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "title": "Recovery Action Log",
+            "type": "table",
+            "gridPos": {
+                "h": 8,
+                "w": 24,
+                "x": 0,
+                "y": 24
+            },
+            "targets": [
+                {
+                    "expr": "recovery_actions_total",
+                    "legendFormat": "{{service}} - {{action}} ({{result}})",
+                    "format": "table",
+                    "instant": true
+                }
+            ]
+        }
+    ],
+    "refresh": "5s",
+    "schemaVersion": 30,
+    "style": "dark",
+    "tags": [
+        "skam",
+        "chaos",
+        "anomaly"
+    ],
+    "templating": {
+        "list": []
+    },
+    "time": {
+        "from": "now-15m",
+        "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "browser",
+    "title": "SKAM - Chaos & Anomaly Detection",
+    "uid": "skam-chaos-anomaly",
+    "version": 1
+}

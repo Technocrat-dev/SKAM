@@ -30,23 +30,47 @@ prometheus:
           - source_labels: [__meta_kubernetes_pod_label_app]
             action: replace
             target_label: app
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: namespace
 
 grafana:
   adminPassword: "hackathon"
   service:
     type: ClusterIP
+
+  # Datasources — Prometheus is auto-added, we add Loki
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      url: http://loki:3100
+      access: proxy
+      isDefault: false
+      jsonData:
+        maxLines: 1000
+
+  # Dashboard providers (loads dashboards from ConfigMaps)
   dashboardProviders:
     dashboardproviders.yaml:
       apiVersion: 1
       providers:
-        - name: 'default'
+        - name: 'skam'
           orgId: 1
           folder: 'SKAM'
           type: file
           disableDeletion: false
           editable: true
           options:
-            path: /var/lib/grafana/dashboards/default
+            path: /var/lib/grafana/dashboards/skam
+
+  # Load dashboards from ConfigMap
+  dashboardsConfigMaps:
+    skam: "grafana-dashboards"
+
+  # Default dashboard on login
+  grafana.ini:
+    dashboards:
+      default_home_dashboard_path: /var/lib/grafana/dashboards/skam/service-health.json
 
 alertmanager:
   enabled: false
