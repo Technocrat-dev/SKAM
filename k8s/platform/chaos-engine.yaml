@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chaos-engine
+  labels:
+    app: chaos-engine
+    component: platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chaos-engine
+  template:
+    metadata:
+      labels:
+        app: chaos-engine
+        component: platform
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: chaos-platform-sa
+      containers:
+        - name: chaos-engine
+          image: k3d-skam-registry:5111/chaos-engine:latest
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: KUBERNETES_SERVICE_HOST
+              value: ""  # Uses in-cluster config
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chaos-engine
+  labels:
+    app: chaos-engine
+spec:
+  selector:
+    app: chaos-engine
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: http
+  type: ClusterIP

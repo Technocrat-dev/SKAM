@@ -27,7 +27,10 @@ infra-deploy:
 		-n $(MONITORING_NS) --set promtail.enabled=true \
 		-f k8s/infrastructure/loki-values.yaml --wait
 	kubectl apply -f k8s/infrastructure/prometheus-rules.yaml
-	kubectl apply -f k8s/infrastructure/grafana-dashboards-configmap.yaml
+	kubectl create configmap grafana-dashboards -n $(MONITORING_NS) \
+		--from-file=k8s/infrastructure/grafana-dashboards/ \
+		--dry-run=client -o yaml | kubectl apply -f -
+	kubectl label configmap grafana-dashboards -n $(MONITORING_NS) grafana_dashboard=1 --overwrite
 	kubectl apply -f k8s/rbac/
 
 # ─── Protobuf ─────────────────────────────────────────────
