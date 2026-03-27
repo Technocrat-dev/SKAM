@@ -255,7 +255,12 @@ def _is_in_cooldown(service: str) -> bool:
     """Check if a service is in cooldown period."""
     if service not in cooldowns:
         return False
-    return datetime.now(timezone.utc) < cooldowns[service]
+    if datetime.now(timezone.utc) < cooldowns[service]:
+        return True
+    # Cooldown expired — clean up
+    del cooldowns[service]
+    cooldown_active.labels(service=service).set(0)
+    return False
 
 
 def _set_cooldown(service: str):

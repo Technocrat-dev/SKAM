@@ -14,16 +14,25 @@ class ActionExecutor:
     """Executes recovery actions against the K8s cluster."""
 
     def __init__(self):
+        self._initialized = False
+        self.core_v1 = None
+        self.apps_v1 = None
+
+    def _ensure_init(self):
+        """Lazy-init K8s clients on first use."""
+        if self._initialized:
+            return
         try:
             config.load_incluster_config()
         except config.ConfigException:
             config.load_kube_config()
         self.core_v1 = client.CoreV1Api()
         self.apps_v1 = client.AppsV1Api()
-        self.autoscaling_v1 = client.AutoscalingV1Api()
+        self._initialized = True
 
     async def execute(self, service: str, policy: dict, session=None):
         """Route to the appropriate action handler."""
+        self._ensure_init()
         action = policy["action"]
         handlers = {
             "restart_pods": self._restart_pods,
