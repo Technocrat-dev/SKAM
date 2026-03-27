@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import './App.css'
 import ServiceTopology from './components/ServiceTopology'
 import AnomalyTimeline from './components/AnomalyTimeline'
@@ -6,116 +6,119 @@ import ChaosPanel from './components/ChaosPanel'
 import LiveMetrics from './components/LiveMetrics'
 import EventLog from './components/EventLog'
 
-const API_BASE = import.meta.env.VITE_API_BASE || ''
+const API = import.meta.env.VITE_API_BASE || ''
+
+const TABS = [
+  { id: 'topology', label: 'Topology' },
+  { id: 'timeline', label: 'Timeline' },
+  { id: 'chaos', label: 'Chaos' },
+  { id: 'metrics', label: 'Metrics' },
+  { id: 'events', label: 'Events' },
+]
 
 function App() {
   const [scores, setScores] = useState([])
   const [events, setEvents] = useState([])
   const [detectorStatus, setDetectorStatus] = useState(null)
   const [engineStatus, setEngineStatus] = useState(null)
-  const [activeTab, setActiveTab] = useState('topology')
+  const [tab, setTab] = useState('topology')
   const wsRef = useRef(null)
 
-  // Poll anomaly scores
+  const fetchScores = useCallback(async () => {
+    try {
+      const r = await fetch(`${API}/anomaly/api/scores`)
+      if (!r.ok) return
+      const d = await r.json()
+      setScores(d.scores || [])
+    } catch (_) { /* backend not reachable yet */ }
+  }, [])
+
+  const fetchStatus = useCallback(async () => {
+    try {
+      const [det, eng] = await Promise.allSettled([
+        fetch(`${API}/anomaly/api/status`).then(r => r.json()),
+        fetch(`${API}/decision/api/status`).then(r => r.json()),
+      ])
+      if (det.status === 'fulfilled') setDetectorStatus(det.value)
+      if (eng.status === 'fulfilled') setEngineStatus(eng.value)
+    } catch (_) { }
+  }, [])
+
   useEffect(() => {
-    const fetchScores = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/anomaly/api/scores`)
-        const data = await res.json()
-        setScores(data.scores || [])
-      } catch (e) { console.debug('Scores fetch failed:', e) }
-    }
     fetchScores()
-    const id = setInterval(fetchScores, 5000)
-    return () => clearInterval(id)
-  }, [])
-
-  // Poll statuses
-  useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const [det, eng] = await Promise.all([
-          fetch(`${API_BASE}/anomaly/api/status`).then(r => r.json()),
-          fetch(`${API_BASE}/decision/api/status`).then(r => r.json()),
-        ])
-        setDetectorStatus(det)
-        setEngineStatus(eng)
-      } catch (e) { console.debug('Status fetch failed:', e) }
-    }
     fetchStatus()
-    const id = setInterval(fetchStatus, 10000)
-    return () => clearInterval(id)
-  }, [])
+    const a = setInterval(fetchScores, 5000)
+    const b = setInterval(fetchStatus, 10000)
+    return () => { clearInterval(a); clearInterval(b) }
+  }, [fetchScores, fetchStatus])
 
-  // WebSocket for real-time events
   useEffect(() => {
-    const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/decision/ws/events`
+    let ws
+    let timer
     const connect = () => {
-      const ws = new WebSocket(wsUrl)
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws'
+      ws = new WebSocket(`${proto}://${location.host}/decision/ws/events`)
       ws.onmessage = (e) => {
-        const event = JSON.parse(e.data)
-        setEvents(prev => [event, ...prev].slice(0, 200))
+        try {
+          const evt = JSON.parse(e.data)
+          setEvents(prev => [evt, ...prev].slice(0, 200))
+        } catch (_) { }
       }
-      ws.onclose = () => setTimeout(connect, 3000)
+      ws.onclose = () => { timer = setTimeout(connect, 3000) }
       wsRef.current = ws
     }
     connect()
-    return () => wsRef.current?.close()
+    return () => { clearTimeout(timer); ws?.close() }
   }, [])
 
   const anomalyCount = scores.filter(s => s.is_anomaly).length
-  const healthyCount = scores.length - anomalyCount
 
   return (
     <div className="app">
       <header className="header">
         <div className="header-left">
           <h1 className="logo">
-            <span className="logo-icon">🛡️</span>
+            <div className="logo-mark">S</div>
             SKAM
           </h1>
-          <span className="subtitle">Self-healing Kubernetes Autonomous Monitor</span>
+          <span className="subtitle">Kubernetes Self-Healing Platform</span>
         </div>
         <div className="header-stats">
           <div className="stat-pill healthy">
             <span className="stat-dot" />
-            {healthyCount} Healthy
+            {scores.length - anomalyCount} ok
           </div>
-          <div className="stat-pill anomaly">
-            <span className="stat-dot" />
-            {anomalyCount} Anomalies
-          </div>
+          {anomalyCount > 0 && (
+            <div className="stat-pill anomaly">
+              <span className="stat-dot" />
+              {anomalyCount} anomal{anomalyCount === 1 ? 'y' : 'ies'}
+            </div>
+          )}
           <div className="stat-pill recovery">
             <span className="stat-dot" />
-            {engineStatus?.total_recoveries || 0} Recoveries
+            {engineStatus?.total_recoveries || 0} healed
           </div>
         </div>
       </header>
 
       <nav className="tab-bar">
-        {[
-          { id: 'topology', label: '🗺️ Topology', },
-          { id: 'anomaly', label: '📊 Anomaly Timeline' },
-          { id: 'chaos', label: '💥 Chaos Control' },
-          { id: 'metrics', label: '📈 Live Metrics' },
-          { id: 'events', label: '📋 Event Log' },
-        ].map(tab => (
+        {TABS.map(t => (
           <button
-            key={tab.id}
-            className={`tab ${activeTab === tab.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
+            key={t.id}
+            className={`tab${tab === t.id ? ' active' : ''}`}
+            onClick={() => setTab(t.id)}
           >
-            {tab.label}
+            {t.label}
           </button>
         ))}
       </nav>
 
       <main className="content">
-        {activeTab === 'topology' && <ServiceTopology scores={scores} />}
-        {activeTab === 'anomaly' && <AnomalyTimeline scores={scores} />}
-        {activeTab === 'chaos' && <ChaosPanel apiBase={API_BASE} />}
-        {activeTab === 'metrics' && <LiveMetrics scores={scores} detectorStatus={detectorStatus} />}
-        {activeTab === 'events' && <EventLog events={events} engineStatus={engineStatus} />}
+        {tab === 'topology' && <ServiceTopology scores={scores} />}
+        {tab === 'timeline' && <AnomalyTimeline scores={scores} />}
+        {tab === 'chaos' && <ChaosPanel api={API} />}
+        {tab === 'metrics' && <LiveMetrics scores={scores} detector={detectorStatus} />}
+        {tab === 'events' && <EventLog events={events} engine={engineStatus} />}
       </main>
     </div>
   )
