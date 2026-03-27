@@ -1,7 +1,9 @@
 """
 Prometheus metrics collector — queries Prometheus HTTP API for service metrics.
+Uses a persistent aiohttp session to avoid connection churn.
 """
 
+import time
 import aiohttp
 import logging
 
@@ -13,6 +15,7 @@ class PrometheusCollector:
 
     def __init__(self, prometheus_url: str):
         self.base_url = prometheus_url.rstrip("/")
+        self._session: aiohttp.ClientSession | None = None
         self.queries = {
             # Request rate
             "request_rate": 'sum(rate(http_requests_total{{app="{service}"}}[2m]))',
@@ -34,33 +37,42 @@ class PrometheusCollector:
             "active_connections": 'sum(http_active_connections{{app="{service}"}})',
         }
 
+    async def start_session(self):
+        """Create a persistent aiohttp session."""
+        if not self._session or self._session.closed:
+            self._session = aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=5),
+                connector=aiohttp.TCPConnector(limit=20),
+            )
+
+    async def close_session(self):
+        """Close the persistent session."""
+        if self._session and not self._session.closed:
+            await self._session.close()
+
     async def collect_service_metrics(self, service: str) -> dict:
         """Query Prometheus for all metrics of a service."""
+        if not self._session or self._session.closed:
+            await self.start_session()
+
         metrics = {}
-
-        try:
-            async with aiohttp.ClientSession() as session:
-                for metric_name, query_template in self.queries.items():
-                    query = query_template.format(service=service)
-                    try:
-                        value = await self._query_instant(session, query)
-                        metrics[metric_name] = value
-                    except Exception as e:
-                        logger.debug(f"Metric {metric_name} not available for {service}: {e}")
-                        metrics[metric_name] = 0.0
-
-        except Exception as e:
-            logger.error(f"Failed to collect metrics for {service}: {e}")
-            return {}
+        for metric_name, query_template in self.queries.items():
+            query = query_template.format(service=service)
+            try:
+                value = await self._query_instant(query)
+                metrics[metric_name] = value
+            except Exception as e:
+                logger.debug(f"Metric {metric_name} not available for {service}: {e}")
+                metrics[metric_name] = 0.0
 
         return metrics
 
-    async def _query_instant(self, session: aiohttp.ClientSession, query: str) -> float:
+    async def _query_instant(self, query: str) -> float:
         """Execute an instant query against Prometheus."""
         url = f"{self.base_url}/api/v1/query"
         params = {"query": query}
 
-        async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=5)) as resp:
+        async with self._session.get(url, params=params) as resp:
             if resp.status != 200:
                 return 0.0
 
@@ -73,39 +85,35 @@ class PrometheusCollector:
             # Return the first result's value
             value = float(results[0]["value"][1])
             # Handle NaN/Inf
-            if not (value == value) or value == float("inf"):  # NaN check
+            if value != value or value == float("inf") or value == float("-inf"):
                 return 0.0
             return value
 
     async def collect_range_metrics(self, service: str, duration: str = "30m", step: str = "15s") -> dict:
         """Query Prometheus for range data (for LSTM time series)."""
+        if not self._session or self._session.closed:
+            await self.start_session()
+
         metrics = {}
-
-        try:
-            async with aiohttp.ClientSession() as session:
-                for metric_name, query_template in self.queries.items():
-                    query = query_template.format(service=service)
-                    try:
-                        values = await self._query_range(session, query, duration, step)
-                        metrics[metric_name] = values
-                    except Exception:
-                        metrics[metric_name] = []
-
-        except Exception as e:
-            logger.error(f"Failed to collect range metrics for {service}: {e}")
+        for metric_name, query_template in self.queries.items():
+            query = query_template.format(service=service)
+            try:
+                values = await self._query_range(query, duration, step)
+                metrics[metric_name] = values
+            except Exception:
+                metrics[metric_name] = []
 
         return metrics
 
-    async def _query_range(self, session: aiohttp.ClientSession, query: str, duration: str, step: str) -> list:
+    async def _query_range(self, query: str, duration: str, step: str) -> list:
         """Execute a range query against Prometheus."""
-        import time
         url = f"{self.base_url}/api/v1/query_range"
         end = time.time()
         start = end - self._parse_duration(duration)
 
         params = {"query": query, "start": start, "end": end, "step": step}
 
-        async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+        async with self._session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=10)) as resp:
             if resp.status != 200:
                 return []
 
