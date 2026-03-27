@@ -52,3 +52,4 @@ proto/*pb/
 # Temporary
 tmp/
 *.log
+data/
