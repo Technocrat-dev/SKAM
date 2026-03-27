@@ -1,0 +1,42 @@
+syntax = "proto3";
+package user;
+option go_package = "skam/proto/userpb";
+
+service UserService {
+  rpc CreateUser(CreateUserRequest) returns (UserResponse);
+  rpc GetUser(GetUserRequest) returns (UserResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc HealthCheck(HealthRequest) returns (HealthResponse);
+}
+
+message CreateUserRequest {
+  string username = 1;
+  string email = 2;
+  string password = 3;
+}
+
+message GetUserRequest {
+  string id = 1;
+}
+
+message UserResponse {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string created_at = 4;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string user_id = 1;
+  string token = 2;
+}
+
+message HealthRequest {}
+message HealthResponse {
+  string status = 1;
+}

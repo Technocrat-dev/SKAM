@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: chaos-platform-sa
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: chaos-platform-role
+rules:
+  # Pod operations (chaos injection + recovery)
+  - apiGroups: [""]
+    resources: ["pods", "pods/exec", "pods/log"]
+    verbs: ["get", "list", "watch", "delete", "create"]
+  # Deployment operations (crash loop, memory pressure, rollback)
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+  # Job operations (CPU stress)
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "create", "delete"]
+  # NetworkPolicy operations (network partition)
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies"]
+    verbs: ["get", "list", "create", "delete"]
+  # HPA operations (scaling recovery)
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "patch", "update"]
+  # Events (monitoring)
+  - apiGroups: [""]
+    resources: ["events", "services", "endpoints", "nodes"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: chaos-platform-binding
+subjects:
+  - kind: ServiceAccount
+    name: chaos-platform-sa
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: chaos-platform-role
+  apiGroup: rbac.authorization.k8s.io

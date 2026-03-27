@@ -1,0 +1,44 @@
+syntax = "proto3";
+package product;
+option go_package = "skam/proto/productpb";
+
+service ProductService {
+  rpc ListProducts(ListProductsRequest) returns (ListProductsResponse);
+  rpc GetProduct(GetProductRequest) returns (ProductResponse);
+  rpc CreateProduct(CreateProductRequest) returns (ProductResponse);
+  rpc HealthCheck(HealthRequest) returns (HealthResponse);
+}
+
+message ListProductsRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+}
+
+message ListProductsResponse {
+  repeated ProductResponse products = 1;
+  int32 total = 2;
+}
+
+message GetProductRequest {
+  string id = 1;
+}
+
+message CreateProductRequest {
+  string name = 1;
+  double price = 2;
+  int32 stock = 3;
+  string category = 4;
+}
+
+message ProductResponse {
+  string id = 1;
+  string name = 2;
+  double price = 3;
+  int32 stock = 4;
+  string category = 5;
+}
+
+message HealthRequest {}
+message HealthResponse {
+  string status = 1;
+}

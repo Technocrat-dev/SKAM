@@ -1,0 +1,25 @@
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: skam
+servers: 1
+agents: 2
+ports:
+  - port: 8080:80
+    nodeFilters: [loadbalancer]
+  - port: 3000:3000
+    nodeFilters: [loadbalancer]
+  - port: 9090:9090
+    nodeFilters: [loadbalancer]
+  - port: 3100:3100
+    nodeFilters: [loadbalancer]
+registries:
+  create:
+    name: skam-registry
+    host: "0.0.0.0"
+    hostPort: "5111"
+options:
+  k3s:
+    extraArgs:
+      - arg: --disable=traefik
+        nodeFilters: [server:*]

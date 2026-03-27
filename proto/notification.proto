@@ -1,0 +1,33 @@
+syntax = "proto3";
+package notification;
+option go_package = "skam/proto/notificationpb";
+
+service NotificationService {
+  rpc SendNotification(SendNotificationRequest) returns (NotificationResponse);
+  rpc GetNotificationStatus(GetNotificationStatusRequest) returns (NotificationResponse);
+  rpc HealthCheck(HealthRequest) returns (HealthResponse);
+}
+
+message SendNotificationRequest {
+  string user_id = 1;
+  string type = 2;
+  string subject = 3;
+  string body = 4;
+}
+
+message GetNotificationStatusRequest {
+  string notification_id = 1;
+}
+
+message NotificationResponse {
+  string id = 1;
+  string user_id = 2;
+  string type = 3;
+  string status = 4;
+  string created_at = 5;
+}
+
+message HealthRequest {}
+message HealthResponse {
+  string status = 1;
+}

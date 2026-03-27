@@ -1,0 +1,32 @@
+syntax = "proto3";
+package payment;
+option go_package = "skam/proto/paymentpb";
+
+service PaymentService {
+  rpc ProcessPayment(ProcessPaymentRequest) returns (PaymentResponse);
+  rpc GetPaymentStatus(GetPaymentStatusRequest) returns (PaymentResponse);
+  rpc HealthCheck(HealthRequest) returns (HealthResponse);
+}
+
+message ProcessPaymentRequest {
+  string order_id = 1;
+  string user_id = 2;
+  double amount = 3;
+}
+
+message GetPaymentStatusRequest {
+  string payment_id = 1;
+}
+
+message PaymentResponse {
+  string id = 1;
+  string order_id = 2;
+  string status = 3;
+  double amount = 4;
+  string processed_at = 5;
+}
+
+message HealthRequest {}
+message HealthResponse {
+  string status = 1;
+}
