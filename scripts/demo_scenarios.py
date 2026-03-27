@@ -22,7 +22,6 @@ Usage:
 import asyncio
 import argparse
 import time
-import sys
 
 import aiohttp
 

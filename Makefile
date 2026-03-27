@@ -61,7 +61,7 @@ build-platform:
 	done
 
 build-dashboard:
-	docker build -t $(REGISTRY)/dashboard:latest dashboard/
+	docker build -t $(REGISTRY)/dashboard:latest platform/dashboard/
 	docker push $(REGISTRY)/dashboard:latest
 
 # ─── Deploy ────────────────────────────────────────────────
@@ -84,18 +84,14 @@ deploy-platform:
 	done
 
 deploy-dashboard:
-	kubectl apply -f k8s/dashboard/dashboard.yaml
+	kubectl apply -f k8s/platform/dashboard.yaml
 
 # ─── Operations ────────────────────────────────────────────
 load-test:
-	python scripts/load-generator.py
+	python scripts/load_generator.py
 
 chaos-demo:
-	@for i in 1 2 3 4 5; do \
-		echo "=== Running Scenario $$i ==="; \
-		python scripts/demo-scenario-$$i.py; \
-		sleep 10; \
-	done
+	python scripts/demo_scenarios.py all
 
 dashboard:
 	@echo "Opening dashboard at http://localhost:3000"

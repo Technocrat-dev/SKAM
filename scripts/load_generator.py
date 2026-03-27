@@ -14,7 +14,6 @@ import asyncio
 import argparse
 import random
 import time
-import sys
 from dataclasses import dataclass
 
 import aiohttp
@@ -27,9 +26,9 @@ ENDPOINTS = [
     ("GET",  "/api/products/prod-001"),
     ("POST", "/api/orders"),
     ("GET",  "/api/orders/ord-001"),
-    ("POST", "/api/cart/usr-001/items"),
+    ("POST", "/api/cart/items"),
     ("GET",  "/api/cart/usr-001"),
-    ("POST", "/api/payments"),
+    ("POST", "/api/payments/process"),
 ]
 
 ORDER_BODY = {
@@ -37,7 +36,7 @@ ORDER_BODY = {
     "items": [{"product_id": "prod-001", "quantity": 1}],
 }
 
-CART_BODY = {"product_id": "prod-001", "quantity": 1}
+CART_BODY = {"user_id": "usr-001", "product_id": "prod-001", "quantity": 1}
 PAYMENT_BODY = {"order_id": "ord-001", "amount": 29.99, "method": "card"}
 
 
